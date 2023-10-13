@@ -26,15 +26,19 @@ int main(int argc, char *argv[])
 
 		//child -- process that'll execute
         if (child_pid == 0) {
+			//close read-end
 			close(fds[0]);
-			dup2(fds[1], 1);
+			//set stdout to write-end of pipe
+			if(dup2(fds[1], 1) < 0){
+				exit(EXIT_FAILURE);
+			}
 			//handle invalid programs
 			if (execlp(argv[proc_num], argv[proc_num], NULL) == -1) {
 				exit(EXIT_FAILURE);
    			}
         }
 
-		//parent -- waits for child process, sets stdin to read pipe for next execution round
+		//parent -- waits for child, sets stdin to read pipe for next execution round
 		else if (child_pid > 0) {
 			waitpid(child_pid, &status, 0);
 			//check whether child exited with error
@@ -42,7 +46,11 @@ int main(int argc, char *argv[])
 			if(exit_status != 0) {
 				exit(exit_status);
 			}
-			dup2(fds[0], 0);
+			//set stdin to read-end of pipe
+			if(dup2(fds[0], 0)){
+				exit(EXIT_FAILURE);
+			}
+			//close write-end
 			close(fds[1]);
         }
 
