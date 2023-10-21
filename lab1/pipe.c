@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 		}
     }
 
-	//execute the last instruction
+	//execute the last instruction (stdout is default)
 	if (execlp(argv[proc_num], argv[proc_num], NULL) == -1) {
 		exit(EXIT_FAILURE);
 	}
