@@ -19,6 +19,7 @@ struct process
   TAILQ_ENTRY (process) pointers;
 
   /* Additional fields here */
+  
   /* End of "Additional fields here" */
 };
 
