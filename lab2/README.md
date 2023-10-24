@@ -5,7 +5,7 @@ TODO
 ## Building
 
 ```shell
-TODO
+make
 ```
 
 ## Running
@@ -24,5 +24,5 @@ TODO
 ## Cleaning up
 
 ```shell
-TODO
+make clean
 ```
