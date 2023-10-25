@@ -155,6 +155,16 @@ static struct process_set init_processes(char const *filename)
   return (struct process_set){nprocesses, process};
 }
 
+//comparator function for sorting an array
+int compare (const void * elem1, const void * elem2) 
+{
+    long f = *((long*)elem1);
+    long s = *((long*)elem2);
+    if (f > s) return  1;
+    if (f < s) return -1;
+    return 0;
+}
+
 // main program
 int main(int argc, char *argv[])
 {
@@ -180,6 +190,10 @@ int main(int argc, char *argv[])
   long total_response_time = 0;
 
   /* Your code here */
+  int proc_count = 0; //# of processes run
+  bool dynamic_quantum = quantum_length == -1; //returns true if quantum is dynamically determined using median
+  long* runtime_list = (long*)malloc(10000 * sizeof(long)); //array to keep track of process runtimes
+
   struct process *first_proc = &ps.process[0];
   int time = first_proc->arrival_time;
   int arrival_index = 1;
@@ -188,8 +202,22 @@ int main(int argc, char *argv[])
   // while queue isn't empty
   while (!TAILQ_EMPTY(&list))
   {
+    if (dynamic_quantum) {
+      if (quantum_length <= 0){
+        quantum_length = 1;
+      }
+      else {
+        //sort the runtime array and set quantum to its median
+        qsort(runtime_list, proc_count, sizeof(long), compare);
+        // for (int i = 0; i < proc_count; i++){
+        //   printf("%ld", runtime_list[i]);
+        // }
+        quantum_length = runtime_list[proc_count/2];
+        // printf("quantum length is: %ld\n", quantum_length);
+      }
+    }
     struct process *curr_process = TAILQ_FIRST(&list);
-    // printf("process %ld executes at time %d\n", curr_process->pid, time);
+    printf("process %ld executes at time %d\n", curr_process->pid, time);
 
     // first run since arrival
     if (curr_process->start_exec_time == 0)
@@ -204,23 +232,25 @@ int main(int argc, char *argv[])
 
     // runtime of current process = min(remaining time, quantum length)
     int runtime = curr_process->remaining_time > quantum_length ? quantum_length : curr_process->remaining_time;
-    int next_time = time + runtime;
+    int next_time = time + runtime + 1;
 
     // append newly arrived processes to queue
     while (arrival_index < ps.nprocesses && ps.process[arrival_index].arrival_time <= next_time)
     {
       TAILQ_INSERT_TAIL(&list, &ps.process[arrival_index], pointers);
-      // printf("process %ld arrives at time %d\n", (&ps.process[arrival_index])->pid, time);
+      printf("process %ld arrives at time %d\n", (&ps.process[arrival_index])->pid, time);
       arrival_index++;
     }
 
     // run the current process
     curr_process->remaining_time -= runtime;
+    proc_count++;
+    runtime_list[proc_count] = curr_process->burst_time - curr_process->remaining_time;
+    // printf("process number %d is: %ld\n", proc_count, runtime_list[proc_count]);
+    time += runtime + 1; // add context switch + quantum time
 
     // remove process from queue
     TAILQ_REMOVE(&list, curr_process, pointers);
-
-    time += runtime; // add context switch + quantum time
 
     // add current process to queue if it still has burst time left
     if (curr_process->remaining_time > 0)
