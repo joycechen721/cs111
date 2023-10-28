@@ -205,6 +205,10 @@ int main(int argc, char *argv[])
   int proc_running = 0;
   bool dynamic_quantum = quantum_length == -1; //returns true if quantum is determined using median
   qsort(ps.process, ps.nprocesses, sizeof(struct process), compare_arrivals); //stable sort processes based on arrival
+  // for (int i = 0; i < ps.nprocesses; i++){
+  //   printf("%ld, ", (&ps.process[i])->pid);
+  // }
+  // printf("\n");
 
   struct process *first_proc = &ps.process[0];
   int time = first_proc->arrival_time;
@@ -220,7 +224,6 @@ int main(int argc, char *argv[])
     if (!curr_process->already_start){      
       curr_process->already_start = true;
       proc_count++;
-      proc_running++;
       curr_process->remaining_time = curr_process->burst_time;
       long res = time - curr_process->arrival_time;
       curr_process->response_time = res;
@@ -242,12 +245,9 @@ int main(int argc, char *argv[])
         quantum_length = 1;
       }
       else{
-
-          // printf("-------------\n");
-
-        // printf("proc_running: %d\n", proc_running);
-        proc_running = 0;
         struct process *proc_i;
+        //calculate current # of processes running
+        proc_running = 0;
         TAILQ_FOREACH(proc_i, &list, pointers) {
           proc_running++;
         }
@@ -258,19 +258,6 @@ int main(int argc, char *argv[])
           temp_list[index] = proc_i->run_time;
           index++;
         }
-
-        // for (int i = 0; i < ps.nprocesses; i++){
-        //   struct process *this_proc = &ps.process[i];
-        //   if (this_proc->already_start && this_proc->remaining_time > 0){
-        //       temp_list[index] = this_proc->run_time;
-        //       index++;
-        //   }
-        // }
-        //sort the runtime array and set quantum to its median
-        // printf("process %ld executes at time %d\n", curr_process->pid, time);
-        // for (int i = 0; i < proc_running; i++){
-        //   printf("%ld, ", temp_list[i]);
-        // }
 
         qsort(temp_list, proc_running, sizeof(long), compare_ints);
         int median = temp_list[proc_running / 2];
@@ -283,18 +270,24 @@ int main(int argc, char *argv[])
             median++;
           }
         }
-        quantum_length = median;
 
-        for (int i = 0; i < proc_running; i++){
-          printf("%ld, ", temp_list[i]);
+        //if resulting median is 0, set to 1
+        if (median <= 0){
+          quantum_length = 1;
+        } else {
+          quantum_length = median;
         }
-        printf("\n");
 
-        // printf("process %ld executes at time %d\n", curr_process->pid, time);
+        // for (int i = 0; i < proc_running; i++){
+        //   printf("%ld, ", temp_list[i]);
+        // }
         // printf("\nmedian is: %ld\n", quantum_length);
       }
     }
   
+  // printf("process %ld executes at time %d\n", curr_process->pid, time);        
+  // printf("\n");
+
     // runtime of current process = min(remaining time, quantum length)
     int runtime = curr_process->remaining_time > quantum_length ? quantum_length : curr_process->remaining_time;
     int next_time = time + runtime;
@@ -323,7 +316,6 @@ int main(int argc, char *argv[])
     }
     // otherwise, the process is done running and we get its total wait time (minus next context switch). remove from runtime list.
     else{
-      proc_running--;
       curr_process->remaining_time = 0;
       // printf("# running: %d ", proc_running);
       total_wait_time += time - curr_process->arrival_time - curr_process->burst_time;
