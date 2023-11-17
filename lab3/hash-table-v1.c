@@ -4,10 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/queue.h>
+#include <errno.h>
 
 #include <pthread.h>
-
-pthread_mutex_t lock;
 
 struct list_entry
 {
@@ -27,6 +26,7 @@ struct hash_table_entry
 struct hash_table_v1
 {
 	struct hash_table_entry entries[HASH_TABLE_CAPACITY];
+	pthread_mutex_t lock;
 };
 
 struct hash_table_v1 *hash_table_v1_create()
@@ -81,7 +81,9 @@ void hash_table_v1_add_entry(struct hash_table_v1 *hash_table,
 							 const char *key,
 							 uint32_t value)
 {
-	pthread_mutex_lock(&lock);
+	if(pthread_mutex_lock(&(hash_table->lock)) == -1){
+		exit(errno);
+	}
 	struct hash_table_entry *hash_table_entry = get_hash_table_entry(hash_table, key);
 	struct list_head *list_head = &hash_table_entry->list_head;
 	struct list_entry *list_entry = get_list_entry(hash_table, key, list_head);
@@ -97,7 +99,9 @@ void hash_table_v1_add_entry(struct hash_table_v1 *hash_table,
 	list_entry->key = key;
 	list_entry->value = value;
 	SLIST_INSERT_HEAD(list_head, list_entry, pointers);
-	pthread_mutex_unlock(&lock);
+	if(pthread_mutex_unlock(&(hash_table->lock)) == -1){
+		exit(errno);
+	}
 }
 
 uint32_t hash_table_v1_get_value(struct hash_table_v1 *hash_table,
@@ -123,6 +127,9 @@ void hash_table_v1_destroy(struct hash_table_v1 *hash_table)
 			SLIST_REMOVE_HEAD(list_head, pointers);
 			free(list_entry);
 		}
+	}
+	if(pthread_mutex_destroy(&(hash_table->lock)) == -1){
+		exit(errno);
 	}
 	free(hash_table);
 }

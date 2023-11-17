@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/queue.h>
+#include <errno.h>
 
 #include <pthread.h>
 
@@ -21,6 +22,7 @@ struct hash_table_entry {
 
 struct hash_table_v2 {
 	struct hash_table_entry entries[HASH_TABLE_CAPACITY];
+	pthread_mutex_t lock;
 };
 
 struct hash_table_v2 *hash_table_v2_create()
@@ -84,8 +86,14 @@ void hash_table_v2_add_entry(struct hash_table_v2 *hash_table,
 
 	list_entry = calloc(1, sizeof(struct list_entry));
 	list_entry->key = key;
-	list_entry->value = value;
+	list_entry->value = value;	
+	if(pthread_mutex_lock(&(hash_table->lock)) == -1){
+		exit(errno);
+	}
 	SLIST_INSERT_HEAD(list_head, list_entry, pointers);
+	if(pthread_mutex_unlock(&(hash_table->lock)) == -1){
+		exit(errno);
+	}
 }
 
 uint32_t hash_table_v2_get_value(struct hash_table_v2 *hash_table,
@@ -109,6 +117,9 @@ void hash_table_v2_destroy(struct hash_table_v2 *hash_table)
 			SLIST_REMOVE_HEAD(list_head, pointers);
 			free(list_entry);
 		}
+	}
+	if(pthread_mutex_destroy(&(hash_table->lock)) == -1){
+		exit(errno);
 	}
 	free(hash_table);
 }
