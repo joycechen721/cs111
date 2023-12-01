@@ -513,7 +513,7 @@ void write_hello_world_file_block(int fd)
 	
 	ssize_t file_len = 12;
 
-	if (write(fd, "Hello World\n", file_len) != file_len) {
+	if (write(fd, "Hello world\n", file_len) != file_len) {
 		errno_exit("write");
 	}
 }
