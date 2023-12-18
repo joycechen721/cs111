@@ -434,7 +434,7 @@ void write_inode_table(int fd) {
 	hello_symlink_inode.i_block[0] = 0x6c6c6568;
 	hello_symlink_inode.i_block[1] = 0x6F772D6F;
 	hello_symlink_inode.i_block[2] = 0x00646C72;
-	write_inode(fd,HELLO_INO, &hello_symlink_inode);
+	write_inode(fd, HELLO_INO, &hello_symlink_inode);
 }
 
 void write_root_dir_block(int fd)
